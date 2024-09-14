@@ -30,7 +30,6 @@
           blockquote += lines[i].slice(2) + "\n";
           i++;
         }
-        console.log(blockquote);
         final += `<blockquote>${parse(blockquote.trim())}</blockquote>`;
       } else {
         // Handle inline code and bold text
