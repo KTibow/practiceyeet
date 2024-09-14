@@ -16,4 +16,4 @@ COPY HttpServerApp.java /app/HttpServerApp.java
 RUN javac HttpServerApp.java
 
 # Command to run the server
-CMD ["java", "-cp", ".", "HttpServer"]
+CMD ["java", "-cp", ".", "HttpServerApp"]
