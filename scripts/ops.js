@@ -53,16 +53,39 @@ Look at that problem. Output ONLY this format:
 <problem>
 [the cleanly formatted problem here. this includes any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines.]
 </problem>
-<field>
-<title>[title of a field here, like "Output" or "x - y"]</title>
-<size>[small or large]</size>
+...fields like:
+<field_large>
+<title>[title]</title>
 <solution>
 [solution here]
 </solution>
-</field>
-...more fields as needed
+</field_large>
+<field_small>
+<title>[title]</title>
+<solution>
+[solution here]
+</solution>
+</field_small>${
+          text.includes("checkbox")
+            ? `
+<field_checkbox>
+<title>[title]</title>
+<solution>[yes or no]</solution>
+</field_checkbox>`
+            : ""
+        }${
+          text.includes("radio")
+            ? `
+<field_select>
+<title>[title]</title>
+<option>[option 1]</option>
+...options
+<solution>[solution index]</solution>
+</field_select>`
+            : ""
+        }
 
-Note: using "x - y" as a title is better than using "Expression 1" as a title`,
+Note: Titles are like "Output" or "x - y". Don't use "Expression 1" as a title, instead only state the expression once in the title.`,
       },
     ],
     temperature: 0,
@@ -71,16 +94,29 @@ Note: using "x - y" as a title is better than using "Expression 1" as a title`,
   const r = await openai(data);
   const problem = r.split("<problem>")[1].split("</problem>")[0].trim();
   const response_fields = [];
-  for (const [, field] of r.matchAll(/<field>(.*?)<\/field>/gs)) {
+  for (const [, type, field] of r.matchAll(
+    /<(field_large|field_small|field_checkbox|field_select)>(.*?)<\/(?:field_large|field_small|field_checkbox|field_select)>/gs,
+  )) {
     let title = field.split("<title>")[1].split("</title>")[0];
     if (title == "output") title = "Output";
-    const size = field.split("<size>")[1].split("</size>")[0];
+
     let solution = field.split("<solution>")[1].split("</solution>")[0].trim();
     if (solution.startsWith("```") && solution.endsWith("```")) {
       solution = solution.slice(3, -3).trim();
     }
 
-    response_fields.push({ title, size, solution });
+    if (type == "field_large") {
+      response_fields.push({ type: "large", title, solution });
+    } else if (type == "field_small") {
+      response_fields.push({ type: "small", title, solution });
+    } else if (type == "field_checkbox") {
+      response_fields.push({ type: "checkbox", title, solution });
+    } else if (type == "field_select") {
+      const options = [...field.matchAll(/<option>(.*?)<\/option>/gs)].map(
+        (x) => x[1],
+      );
+      response_fields.push({ type: "select", title, options, solution });
+    }
   }
 
   return { problem, response_fields };

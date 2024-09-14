@@ -1,29 +1,11 @@
-import { SB_KEY } from "$env/static/private";
 import { error } from "@sveltejs/kit";
+import { fetchSupabase } from "$lib/supabase";
 
 const getProblems = async () => {
-  const r = await fetch(
-    `https://bnbdkuqqhotcnyqxapxj.supabase.co/rest/v1/problems`,
-    {
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-      },
-    },
-  );
-  return await r.json();
+  return await fetchSupabase(`/problems`);
 };
 const getAttempts = async (owner: string) => {
-  const r = await fetch(
-    `https://bnbdkuqqhotcnyqxapxj.supabase.co/rest/v1/attempts?owner=eq.${owner}`,
-    {
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-      },
-    },
-  );
-  return await r.json();
+  return await fetchSupabase(`/attempts?owner=eq.${owner}`);
 };
 
 export const actions = {

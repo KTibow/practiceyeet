@@ -11,9 +11,6 @@
     <span>Have fun, {$page.data.auth}</span>
   {/if}
 </div>
-<p>
-  Warning: Problems may glitch in and out while I mess around with the database
-</p>
 <slot />
 
 <style>

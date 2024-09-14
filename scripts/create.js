@@ -7,7 +7,7 @@ import {
 } from "./ops.js";
 
 const t1 = await load(
-  "https://practiceit.cs.washington.edu/problem/view/bjp4/chapter2/s3%2Dexpressions1",
+  "https://practiceit.cs.washington.edu/problem/view/bjp4/chapter1/s1%2DbinaryNumbers",
 );
 if (isLongform(t1)) {
   // ...

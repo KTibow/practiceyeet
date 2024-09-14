@@ -33,7 +33,11 @@
             {:else if field.type == "small"}
               <input name="response-{i}" type="text" {value} />
             {:else if field.type == "checkbox"}
-              <input name="response-{i}" type="checkbox" {value} />
+              <input
+                name="response-{i}"
+                type="checkbox"
+                checked={value == "yes"}
+              />
             {:else if field.type == "select"}
               <select name="response-{i}">
                 {#each field.options as option}
