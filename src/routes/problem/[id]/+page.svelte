@@ -28,10 +28,20 @@
           {@const value = lastAttempt?.guesses?.[i] || ""}
           <div>
             <p>{field.title}</p>
-            {#if field.size == "large"}
+            {#if field.type == "large"}
               <textarea name="response-{i}" rows="5" {value} />
-            {:else}
+            {:else if field.type == "small"}
               <input name="response-{i}" type="text" {value} />
+            {:else if field.type == "checkbox"}
+              <input name="response-{i}" type="checkbox" {value} />
+            {:else if field.type == "select"}
+              <select name="response-{i}">
+                {#each field.options as option}
+                  <option selected={value == option} value={option}
+                    >{option}</option
+                  >
+                {/each}
+              </select>
             {/if}
           </div>
         {/each}
@@ -96,7 +106,7 @@
     font-weight: bold;
   }
   form textarea,
-  form input {
+  form input[type="text"] {
     flex-grow: 1;
 
     background-color: rgb(var(--m3-scheme-surface-container));
@@ -104,9 +114,17 @@
     border-radius: 0.5rem;
   }
   form[inert] textarea,
-  form[inert] input {
+  form[inert] input[type="text"] {
     background-color: rgb(var(--m3-scheme-on-background) / 0.4);
     color: rgb(var(--m3-scheme-on-background) / 0.9);
+  }
+  form input[type="checkbox"] {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-left: auto;
+  }
+  form select {
+    min-width: 0;
   }
   form button {
     display: flex;

@@ -106,8 +106,9 @@ export const load = async ({ params, locals }) => {
   if (problem && problem.type == "shortform") {
     problem.response_fields = problem.response_fields.map((field: any) => {
       return {
+        type: field.type,
         title: field.title,
-        size: field.size,
+        options: field.options,
       };
     });
   }
