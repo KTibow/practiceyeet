@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.file.*;
+import java.util.stream.Collectors;
 
 public class HttpServerApp {
     public static void main(String[] args) throws Exception {
