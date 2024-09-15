@@ -30,12 +30,14 @@ public class HttpServerApp {
                 String className = javaCode.split("class")[1].split(" ")[1];
                 String filename = className + ".java";
 
-                // Save the Java code to a file
-                Files.write(Paths.get("/app", filename), javaCode.getBytes());
+                // Save the Java code to a random directory to prevent collisions
+                Path tempDir = Files.createTempDirectory("javac");
+                Path javaFile = tempDir.resolve(filename);
+                Files.write(javaFile, javaCode.getBytes());
 
                 // Compile the Java file
-                Process compileProcess = new ProcessBuilder("javac", filename)
-                        .directory(new File("/app"))
+                Process compileProcess = new ProcessBuilder("javac", javaFile.toString())
+                        .directory(tempDir.toFile())
                         .start();
 
                 try {
@@ -44,9 +46,27 @@ public class HttpServerApp {
                     e.printStackTrace();
                 }
 
+                if (compileProcess.exitValue() != 0) {
+                    // Send back the compilation error message
+                    ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+                    errorStream.write(compileProcess.getErrorStream().readAllBytes());
+                    exchange.sendResponseHeaders(500, errorStream.size());
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(errorStream.toByteArray());
+                    os.close();
+                    return;
+                }
+
                 // Send back the .class file
                 String classFilename = filename.replace(".java", ".class");
-                byte[] classBytes = Files.readAllBytes(Paths.get("/app", classFilename));
+                byte[] classBytes = Files.readAllBytes(tempDir.resolve(classFilename));
+
+                // Clean up the temporary directory
+                try (Stream<Path> walk = Files.walk(tempDir)) {
+                    walk.sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(File::delete);
+                }
                 exchange.sendResponseHeaders(200, classBytes.length);
                 OutputStream os = exchange.getResponseBody();
                 os.write(classBytes);
