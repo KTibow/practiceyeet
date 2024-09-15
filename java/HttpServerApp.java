@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class HttpServerApp {
     public static void main(String[] args) throws Exception {
@@ -29,7 +31,9 @@ public class HttpServerApp {
                 return;
             }
 
-            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            InputStream is = exchange.getRequestBody();
+            String requestBody = new BufferedReader(new InputStreamReader(is))
+                    .lines().collect(Collectors.joining("\n"));
             String[] parts = requestBody.split("START CHECKER");
             if (parts.length != 2) {
                 sendResponse(exchange, 400, "Invalid request body format");
