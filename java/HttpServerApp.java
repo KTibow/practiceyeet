@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class HttpServerApp {
     public static void main(String[] args) throws Exception {
@@ -54,12 +53,28 @@ public class HttpServerApp {
                 Files.write(solutionFile, solution.getBytes(StandardCharsets.UTF_8));
                 Files.write(checkerFile, checker.getBytes(StandardCharsets.UTF_8));
 
-                compileFile(solutionFile);
-                compileFile(checkerFile);
+                String solutionCompileResult = compileFile(solutionFile);
+                if (!solutionCompileResult.isEmpty()) {
+                    sendResponse(exchange, 400, "Solution compilation error:\n" + solutionCompileResult);
+                    deleteDirectory(tempDir.toFile());
+                    return;
+                }
+
+                String checkerCompileResult = compileFile(checkerFile);
+                if (!checkerCompileResult.isEmpty()) {
+                    sendResponse(exchange, 400, "Checker compilation error:\n" + checkerCompileResult);
+                    deleteDirectory(tempDir.toFile());
+                    return;
+                }
 
                 String result = runChecker(tempDir, checkerClassName);
-                sendResponse(exchange, 200, result);
+                if (!checkerCompileResult.isEmpty()) {
+                    sendResponse(exchange, 400, "Solution fails checks:\n" + result);
+                    deleteDirectory(tempDir.toFile());
+                    return;
+                }
 
+                sendResponse(exchange, 200, "OK");
                 deleteDirectory(tempDir.toFile());
             } catch (Exception e) {
                 sendResponse(exchange, 500, "Error: " + e.getMessage());
@@ -75,12 +90,21 @@ public class HttpServerApp {
             throw new IllegalArgumentException("No public class found in the code");
         }
 
-        private void compileFile(Path file) throws Exception {
-            Process process = Runtime.getRuntime().exec("javac " + file.toString());
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new Exception("Compilation failed for " + file.getFileName());
+        private String compileFile(Path file) throws Exception {
+            ProcessBuilder pb = new ProcessBuilder("javac", file.toString());
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
             }
+
+            int exitCode = process.waitFor();
+            return exitCode == 0 ? "" : output.toString();
         }
 
         private String runChecker(Path directory, String checkerClassName) throws Exception {
@@ -97,11 +121,7 @@ public class HttpServerApp {
             }
             
             int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new Exception("Checker execution failed: " + output.toString());
-            }
-
-            return "";
+            return exitCode == 0 ? "" : output.toString();
         }
 
         private void deleteDirectory(File directory) {
