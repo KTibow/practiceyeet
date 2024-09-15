@@ -16,8 +16,17 @@
   export let solved: boolean;
   export let feedback: string | undefined;
 
+  const reverseTemplate = (template: string, str: string) => {
+    const parts = template.split("{{INPUT}}");
+    const start = parts[0].length;
+    const end = -parts[1].length;
+    return str.slice(start, end);
+  };
+
   let loading = false;
-  let text = lastAttempt?.guesses[0] || problem.solution_default;
+  let text = lastAttempt
+    ? reverseTemplate(problem.solution_template, lastAttempt.guesses[0])
+    : problem.solution_default;
 
   let divEl: HTMLElement;
   let editor: editor.IStandaloneCodeEditor;
@@ -111,7 +120,6 @@
       if (editor) editor.dispose();
     };
   });
-
   afterUpdate(() => {
     if (editor) {
       editor.layout({ width: 0, height: 0 });

@@ -58,9 +58,6 @@
     max-width: 40rem;
     align-self: center;
   }
-  h1 {
-    margin-bottom: 2rem;
-  }
   h2 {
     font-size: 1rem;
     margin-top: 2rem;
