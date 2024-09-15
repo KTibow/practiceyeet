@@ -68,7 +68,7 @@ public class HttpServerApp {
                 }
 
                 String result = runChecker(tempDir, checkerClassName);
-                if (!checkerCompileResult.isEmpty()) {
+                if (!result.isEmpty()) {
                     sendResponse(exchange, 400, "Solution fails checks:\n" + result);
                     deleteDirectory(tempDir.toFile());
                     return;
