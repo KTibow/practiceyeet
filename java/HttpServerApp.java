@@ -100,6 +100,8 @@ public class HttpServerApp {
             if (exitCode != 0) {
                 throw new Exception("Checker execution failed: " + output.toString());
             }
+
+            return "";
         }
 
         private void deleteDirectory(File directory) {
