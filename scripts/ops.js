@@ -122,6 +122,8 @@ Note: Titles are like "Output" or "x - y". Don't use "Expression 1" as a title, 
   return { problem, response_fields };
 };
 export const extractLongform = async (text) => {
+  const nameOfProblem =
+    text.match(/:  ((?:[A-Z][a-z0-9]*)+)\n/)?.[1] || "Solution";
   const data = {
     model: "gpt-4o-2024-08-06",
     messages: [
@@ -133,18 +135,23 @@ Analyze the open-ended problem above. Output ONLY in this format:
 <problem>
 [the cleanly formatted problem here, including any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines.]
 </problem>
+<solution_mode>
+[for cases where the user should write a full class, use "open" and the user, while starting with the template, will have full control. for cases where the user only needs to write a few lines or a method, use "closed" and the user's solution will be templated into the template.
+</solution_mode>
 <solution_template>
-[the template for the solution, with {{INPUT}} as a placeholder for the user's input. If it's a full class or program, just use {{INPUT}}]
+[write a class for the program. usually something like this:
+public class ${nameOfProblem} {
+    public static void main(String[] args) {
+        {{INPUT}}
+    }
+}]
 </solution_template>
-<solution_default>
-[the default code or starting point for the solution, if any]
-</solution_default>
 <checker>
 [a Java program that checks the correctness of the user's solution. your program should:
 - Exit with code 0 if correct
 - Exit with code 1 and output human-readable info if incorrect
 - Exit with code 1 and output the error message if it errors
-the compiled solution is in the current directory, for example it may be ./Egg.class. prefer using reflection to run the solution.]
+the compiled solution is in the current directory, for example it may be ./${nameOfProblem}.class. prefer using reflection to run the solution.]
 </checker>`,
       },
     ],
@@ -154,15 +161,24 @@ the compiled solution is in the current directory, for example it may be ./Egg.c
   const r = await openai(data);
 
   const problem = r.split("<problem>")[1].split("</problem>")[0].trim();
+  const solution_mode = r
+    .split("<solution_mode>")[1]
+    .split("</solution_mode>")[0]
+    .trim();
   const solution_template = r
     .split("<solution_template>")[1]
     .split("</solution_template>")[0]
     .trim();
-  const solution_default = r
-    .split("<solution_default>")[1]
-    .split("</solution_default>")[0]
-    .trim();
   const checker = r.split("<checker>")[1].split("</checker>")[0].trim();
 
-  return { problem, solution_template, solution_default, checker };
+  return {
+    problem,
+    solution_template:
+      solution_mode == "open" ? "{{INPUT}}" : solution_template,
+    solution_default:
+      solution_mode == "open"
+        ? solution_template.replace("{{INPUT}}", "// Your code here")
+        : "",
+    checker,
+  };
 };
