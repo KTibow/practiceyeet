@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 public class HttpServerApp {
     public static void main(String[] args) throws Exception {
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8000"));
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/compile", new CompileHandler());
         server.setExecutor(null);
         server.start();
