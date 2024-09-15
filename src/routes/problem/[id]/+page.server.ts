@@ -4,6 +4,9 @@ import { fetchSupabase } from "$lib/supabase";
 
 interface Problem {
   type: string;
+  title: string;
+  author: string;
+  problem: string;
   response_fields: ResponseField[];
   [key: string]: any;
 }
@@ -16,7 +19,8 @@ interface ResponseField {
 }
 
 interface Attempt {
-  data: any;
+  correct: boolean;
+  guesses: string[];
   created_at: string;
 }
 
@@ -107,10 +111,6 @@ export const actions = {
         correct: allCorrect,
         guesses,
       });
-
-      if (allCorrect) {
-        return { message: "correct" };
-      }
     }
   },
 };
@@ -119,6 +119,9 @@ export const load = async ({ params, locals }) => {
   let problem:
     | {
         type: string;
+        title: string;
+        author: string;
+        problem: string;
         response_fields: { type: string; title: string; options?: string[] }[];
       }
     | undefined;
