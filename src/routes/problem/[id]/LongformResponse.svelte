@@ -184,8 +184,8 @@
     gap: 0.5rem;
 
     background-color: rgb(var(--m3-scheme-primary) / 0.25);
-    height: 2.5rem;
-    border-radius: 2.5rem;
+    height: 3rem;
+    border-radius: 3rem;
     margin-bottom: 1rem;
   }
   .feedback {

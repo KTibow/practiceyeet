@@ -1,13 +1,19 @@
 <script>
+  import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import "../app.css";
+
+  let title = $page.url.pathname.startsWith("/problem") ? "Problem" : "";
+  $: if (browser && $page) {
+    title = document.title;
+  }
 </script>
 
 <div class="header">
   <a href="/">PracticeYeet</a>
   <span>by Kendell</span>
+  <span style:margin="auto">{title}</span>
   {#if $page.data.auth}
-    <div class="spacer" />
     <span>Have fun, {$page.data.auth}</span>
   {/if}
 </div>
@@ -16,8 +22,8 @@
 <style>
   .header {
     display: flex;
-    height: 3rem;
-    margin: -1rem -1rem 0 -1rem;
+    height: 4rem;
+    margin: -1rem -1rem 2rem -1rem;
     padding-right: 1rem;
   }
   .header > * {
@@ -28,8 +34,5 @@
     color: rgb(var(--m3-scheme-primary));
     padding: 0 1rem;
     font-weight: bold;
-  }
-  .spacer {
-    flex-grow: 1;
   }
 </style>

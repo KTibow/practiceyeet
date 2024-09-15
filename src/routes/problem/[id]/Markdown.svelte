@@ -23,7 +23,7 @@
           codeBlock += lines[i] + "\n";
           i++;
         }
-        final += `<pre>${escape(codeBlock.trim())}</pre>`;
+        final += `<pre>${escape(codeBlock.trimEnd())}</pre>`;
       } else if (line.startsWith(">")) {
         let blockquote = "";
         while (i < lines.length && lines[i].startsWith(">")) {

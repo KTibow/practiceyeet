@@ -19,7 +19,6 @@
 {#if data.problem}
   {@const problem = data.problem}
   <main>
-    <h1>{problem.title}</h1>
     <Markdown text={problem.problem} />
     {#if problem.type == "shortform"}
       <ShortformResponse {problem} {lastAttempt} {solved} />
@@ -64,7 +63,7 @@
   }
   h2 {
     font-size: 1rem;
-    margin-top: 1rem;
+    margin-top: 2rem;
   }
   .copyright {
     margin-top: auto;

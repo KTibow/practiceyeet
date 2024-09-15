@@ -121,3 +121,48 @@ Note: Titles are like "Output" or "x - y". Don't use "Expression 1" as a title, 
 
   return { problem, response_fields };
 };
+export const extractLongform = async (text) => {
+  const data = {
+    model: "gpt-4o-2024-08-06",
+    messages: [
+      {
+        role: "user",
+        content: `<problemarea>${text}</problemarea>
+Analyze the open-ended problem above. Output ONLY in this format:
+
+<problem>
+[the cleanly formatted problem here, including any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines.]
+</problem>
+<solution_template>
+[the template for the solution, with {{INPUT}} as a placeholder for the user's input. If it's a full class or program, just use {{INPUT}}]
+</solution_template>
+<solution_default>
+[the default code or starting point for the solution, if any]
+</solution_default>
+<checker>
+[a Java program that checks the correctness of the user's solution. your program should:
+- Exit with code 0 if correct
+- Exit with code 1 and output human-readable info if incorrect
+- Exit with code 1 and output the error message if it errors
+the compiled solution is in the current directory, for example it may be ./Egg.class. prefer using reflection to run the solution.]
+</checker>`,
+      },
+    ],
+    temperature: 0,
+  };
+
+  const r = await openai(data);
+
+  const problem = r.split("<problem>")[1].split("</problem>")[0].trim();
+  const solution_template = r
+    .split("<solution_template>")[1]
+    .split("</solution_template>")[0]
+    .trim();
+  const solution_default = r
+    .split("<solution_default>")[1]
+    .split("</solution_default>")[0]
+    .trim();
+  const checker = r.split("<checker>")[1].split("</checker>")[0].trim();
+
+  return { problem, solution_template, solution_default, checker };
+};
