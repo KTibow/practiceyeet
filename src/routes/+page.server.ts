@@ -35,16 +35,20 @@ export const load = async ({ locals }) => {
     problems: problems
       .map((p) => ({
         id: p.id,
-        title: p.data.title,
+        title: p.data.title.replace("BJP4 ", ""),
         completed: Boolean(
           attempts?.find((a) => a.problem == p.id && a.data.correct),
         ),
       }))
-      .sort((a, b) => {
-        const [, aMajor, aMinor] = a.title.match(/\b(\d+)\.(\d+)\b/);
-        const [, bMajor, bMinor] = b.title.match(/\b(\d+)\.(\d+)\b/);
+      .sort(({ title: aTitle }, { title: bTitle }) => {
+        const [, aMajor, aMinor] = aTitle.match(/\b(\d+)\.(\d+)\b/);
+        const [, bMajor, bMinor] = bTitle.match(/\b(\d+)\.(\d+)\b/);
 
         if (aMajor != bMajor) return aMajor - bMajor;
+        if (aTitle.includes("Exercise") && !bTitle.includes("Exercise"))
+          return 1;
+        if (!aTitle.includes("Exercise") && bTitle.includes("Exercise"))
+          return -1;
         return aMinor - bMinor;
       }),
   };

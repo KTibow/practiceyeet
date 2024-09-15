@@ -2,14 +2,21 @@ import { error } from "@sveltejs/kit";
 import { shuffle } from "$lib/shuffle";
 import { fetchSupabase } from "$lib/supabase";
 
-interface Problem {
-  type: string;
+type Problem = {
   title: string;
   author: string;
   problem: string;
+};
+type ShortformProblem = Problem & {
+  type: "shortform";
   response_fields: ResponseField[];
-  [key: string]: any;
-}
+};
+type LongformProblem = Problem & {
+  type: "longform";
+  solution_template: string;
+  solution_default: string;
+  checker: string;
+};
 
 interface ResponseField {
   type: string;
@@ -24,7 +31,9 @@ interface Attempt {
   created_at: string;
 }
 
-const getProblem = async (problem: string): Promise<Problem | undefined> => {
+const getProblem = async (
+  problem: string,
+): Promise<ShortformProblem | LongformProblem | undefined> => {
   const json = await fetchSupabase(`/problems?id=eq.${problem}`);
   return json[0]?.data;
 };
@@ -51,7 +60,10 @@ const saveAttempt = async (
   });
 };
 
-const processShortformSubmission = (problem: Problem, formData: FormData) => {
+const processShortformSubmission = (
+  problem: ShortformProblem,
+  formData: FormData,
+) => {
   const processGuess = (field: ResponseField, guess: string): string => {
     switch (field.type) {
       case "large":
@@ -93,6 +105,32 @@ const processShortformSubmission = (problem: Problem, formData: FormData) => {
   return { guesses, allCorrect };
 };
 
+const processLongformSubmission = async (
+  problem: LongformProblem,
+  formData: FormData,
+) => {
+  const text = formData.get("text") as string;
+  const checker = problem.checker;
+
+  const checkR = await fetch(
+    "https://practiceyeet-degkbfb6epg2efc7.westus-01.azurewebsites.net/compile",
+    {
+      method: "POST",
+      body: `${text}
+START CHECKER
+${checker}`,
+    },
+  );
+  const checkOk = checkR.ok;
+  const checkText = await checkR.text();
+
+  let feedback = "";
+  if (!checkOk) {
+    feedback = checkText;
+  }
+  return { guesses: [text], allCorrect: checkOk, feedback };
+};
+
 export const actions = {
   default: async ({ request, params, locals }) => {
     if (!locals.auth) error(401);
@@ -100,7 +138,7 @@ export const actions = {
     const problem = await getProblem(params.id);
     if (!problem) error(404);
 
-    if (problem.type === "shortform") {
+    if (problem.type == "shortform") {
       const formData = await request.formData();
       const { guesses, allCorrect } = processShortformSubmission(
         problem,
@@ -112,18 +150,38 @@ export const actions = {
         guesses,
       });
     }
+    if (problem.type == "longform") {
+      const formData = await request.formData();
+      const { guesses, allCorrect, feedback } = await processLongformSubmission(
+        problem,
+        formData,
+      );
+
+      await saveAttempt(locals.auth, params.id, {
+        correct: allCorrect,
+        guesses,
+      });
+      return { feedback };
+    }
   },
 };
 
 export const load = async ({ params, locals }) => {
   let problem:
-    | {
-        type: string;
-        title: string;
-        author: string;
-        problem: string;
-        response_fields: { type: string; title: string; options?: string[] }[];
-      }
+    | (Problem & {
+        type: "shortform";
+        response_fields: {
+          type: string;
+          title: string;
+          options?: string[];
+        }[];
+      })
+    | (Problem & {
+        type: "longform";
+        solution_template: string;
+        solution_default: string;
+        checker?: string;
+      })
     | undefined;
   let attempts: Attempt[] = [];
 
@@ -136,12 +194,15 @@ export const load = async ({ params, locals }) => {
     problem = await getProblem(params.id);
   }
 
-  if (problem && problem.type === "shortform") {
+  if (problem && problem.type == "shortform") {
     problem.response_fields = problem.response_fields.map((field) => ({
       type: field.type,
       title: field.title,
       options: field.options ? shuffle(field.options) : [],
     }));
+  }
+  if (problem && problem.type == "longform") {
+    delete problem.checker;
   }
 
   return { problem, attempts };
