@@ -5,7 +5,9 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.file.*;
+import java.util.Comparator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class HttpServerApp {
     public static void main(String[] args) throws Exception {
@@ -48,12 +50,19 @@ public class HttpServerApp {
 
                 if (compileProcess.exitValue() != 0) {
                     // Send back the compilation error message
-                    ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-                    errorStream.write(compileProcess.getErrorStream().readAllBytes());
-                    exchange.sendResponseHeaders(500, errorStream.size());
-                    OutputStream os = exchange.getResponseBody();
-                    os.write(errorStream.toByteArray());
-                    os.close();
+                    try (InputStream errorStream = compileProcess.getErrorStream();
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                        byte[] buffer = new byte[1024];
+                        int len;
+                        while ((len = errorStream.read(buffer)) != -1) {
+                            baos.write(buffer, 0, len);
+                        }
+                        byte[] errorBytes = baos.toByteArray();
+                        exchange.sendResponseHeaders(500, errorBytes.length);
+                        try (OutputStream os = exchange.getResponseBody()) {
+                            os.write(errorBytes);
+                        }
+                    }
                     return;
                 }
 
