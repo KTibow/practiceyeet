@@ -11,7 +11,6 @@
 
 <div class="header">
   <a href="/">PracticeYeet</a>
-  <span>by Kendell</span>
   <span style:margin="auto">{title}</span>
   {#if $page.data.auth}
     <span>Have fun, {$page.data.auth}</span>
