@@ -1,60 +1,41 @@
 <script lang="ts">
+  import LogIn from "./LogIn.svelte";
+  import SetCourse from "./SetCourse.svelte";
+
   export let data;
 </script>
 
 <svelte:head>
-  <title>PracticeYeet</title>
+  <title
+    >{data.problems
+      ? "PracticeYeet problems"
+      : "PracticeYeet educator view"}</title
+  >
 </svelte:head>
+
 {#if !data.auth}
-  <form method="post">
-    <input
-      name="id"
-      type="text"
-      placeholder="Student ID"
-      pattern={"[0-9]{7}"}
-      required
-    />
-    <button>Log in</button>
-  </form>
+  <LogIn />
+{:else if data.auth != "educator" && !data.course}
+  <SetCourse />
 {/if}
-<div class="problems">
-  {#each data.problems as problem}
-    <a href="/problem/{problem.id}" class:completed={problem.completed}
-      >{problem.title}</a
-    >
-  {/each}
-</div>
+{#if data.problems}
+  <div class="list">
+    {#each data.problems as problem}
+      <a href="/problem/{problem.id}" class:completed={problem.completed}>
+        {problem.title}
+      </a>
+    {/each}
+  </div>
+{:else}
+  <div class="list">
+    {#each data.allCourses as course}
+      <a href="/viewCourse/{course}">{course}</a>
+    {/each}
+  </div>
+{/if}
 
 <style>
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-
-    width: 100%;
-    max-width: 40rem;
-    align-self: center;
-  }
-  form > * {
-    display: flex;
-    align-items: center;
-
-    background-color: rgb(var(--m3-scheme-surface-container));
-
-    height: 2.5rem;
-    padding: 0 1rem;
-    border-radius: 2.5rem;
-  }
-  form > button {
-    background-color: rgb(var(--m3-scheme-primary));
-    color: rgb(var(--m3-scheme-on-primary));
-
-    font-weight: 500;
-
-    border-radius: 2.5rem;
-  }
-
-  .problems {
+  .list {
     display: flex;
     flex-direction: column;
 
@@ -62,13 +43,13 @@
     max-width: 40rem;
     align-self: center;
   }
-  .problems > a {
+  .list > a {
     display: flex;
     align-items: center;
     color: rgb(var(--m3-scheme-primary));
     height: 2rem;
   }
-  .problems > a.completed {
+  .list > a.completed {
     text-decoration: line-through;
   }
 </style>
