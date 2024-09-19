@@ -55,7 +55,7 @@
     flex-grow: 1;
 
     width: 100%;
-    max-width: 40rem;
+    max-width: 60rem;
     align-self: center;
   }
   h2 {
