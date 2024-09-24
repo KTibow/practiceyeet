@@ -121,7 +121,7 @@ public class HttpServerApp {
             }
             
             int exitCode = process.waitFor();
-            return exitCode == 0 ? "" : output.toString();
+            return exitCode == 0 ? "" : (output.length() == 0 ? "Unknown error" : output.toString());
         }
 
         private void deleteDirectory(File directory) {
