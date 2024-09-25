@@ -1,6 +1,7 @@
 import { error } from "@sveltejs/kit";
 import { getProblems } from "$lib/problems";
 import { fetchSupabase } from "$lib/supabase";
+import { reverseTemplate } from "$lib/reverseTemplate.js";
 
 const listAttempts = async (course: string) => {
   const userList: { owner: number }[] = await fetchSupabase(
@@ -25,7 +26,13 @@ export const load = async ({ params, locals }) => {
 
   const users = userList.map(({ owner }) => owner);
   const matrix: any[] = [];
-  for (const problem of problems) {
+  for (const {
+    id,
+    data: { title, solution_template },
+  } of problems as {
+    id: number;
+    data: { title: string; solution_template: string };
+  }[]) {
     const tracking: Record<
       string,
       { status: "complete" | "tried" | "incomplete"; code: string | undefined }
@@ -34,26 +41,28 @@ export const load = async ({ params, locals }) => {
     for (const user of users) {
       const correctAttempt = attempts.find(
         (attempt) =>
-          attempt.problem == problem.id &&
+          attempt.problem == id &&
           attempt.owner == user &&
           attempt.data.correct,
       );
       const anyAttempt = attempts.find(
-        (attempt) => attempt.problem == problem.id && attempt.owner == user,
+        (attempt) => attempt.problem == id && attempt.owner == user,
       );
+      const code =
+        correctAttempt &&
+        correctAttempt.data.guesses[0].startsWith("public class") &&
+        reverseTemplate(solution_template, correctAttempt.data.guesses[0]);
       tracking[user] = {
         status: correctAttempt
           ? "complete"
           : anyAttempt
             ? "tried"
             : "incomplete",
-        code: correctAttempt?.data.guesses[0].startsWith("public class")
-          ? correctAttempt.data.guesses[0]
-          : undefined,
+        code,
       };
     }
 
-    matrix.push({ title: problem.data.title, tracking });
+    matrix.push({ title, tracking });
   }
 
   return { users, matrix };

@@ -3,6 +3,7 @@
   import { afterUpdate, onMount } from "svelte";
   import { page } from "$app/stores";
   import { enhance } from "$app/forms";
+  import { reverseTemplate } from "$lib/reverseTemplate";
   import AltLoader from "./AltLoader.svelte";
 
   export let problem: {
@@ -16,13 +17,6 @@
     | undefined;
   export let solved: boolean;
   export let feedback: string | undefined;
-
-  const reverseTemplate = (template: string, str: string) => {
-    const parts = template.split("{{INPUT}}");
-    const start = parts[0].length;
-    const end = -parts[1].length;
-    return str.slice(start, end);
-  };
 
   let loading = false;
   let text = lastAttempt
