@@ -161,24 +161,28 @@
 <div class="parent">
   <div bind:this={divEl} />
 </div>
-{#if !(solved || loading)}
-  <form
-    method="post"
-    use:enhance={() => {
-      loading = true;
-      return async ({ update }) => {
-        await update();
-        loading = false;
-      };
-    }}
-  >
-    <input
-      type="hidden"
-      name="text"
-      value={problem.solution_template.replace("{{INPUT}}", text)}
-    />
-    <button>Check</button>
-  </form>
+{#if $page.data.auth}
+  {#if !(solved || loading)}
+    <form
+      method="post"
+      use:enhance={() => {
+        loading = true;
+        return async ({ update }) => {
+          await update();
+          loading = false;
+        };
+      }}
+    >
+      <input
+        type="hidden"
+        name="text"
+        value={problem.solution_template.replace("{{INPUT}}", text)}
+      />
+      <button>Check</button>
+    </form>
+  {/if}
+{:else}
+  <p><a href="/">Log in</a> to solve</p>
 {/if}
 
 <style>
@@ -225,5 +229,8 @@
     height: 2.5rem;
     padding: 0 1rem;
     border-radius: 2.5rem;
+  }
+  a {
+    color: rgb(var(--m3-scheme-primary));
   }
 </style>

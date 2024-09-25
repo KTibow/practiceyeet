@@ -53,9 +53,11 @@
       {/if}
     </div>
   {/each}
-  {#if !solved && $page.data.auth}
-    <button>Check</button>
-  {:else if !$page.data.auth}
+  {#if $page.data.auth}
+    {#if !solved}
+      <button>Check</button>
+    {/if}
+  {:else}
     <p><a href="/">Log in</a> to solve</p>
   {/if}
 </form>
