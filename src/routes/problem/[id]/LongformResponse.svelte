@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { editor } from "monaco-editor";
   import { afterUpdate, onMount } from "svelte";
+  import { page } from "$app/stores";
   import { enhance } from "$app/forms";
   import AltLoader from "./AltLoader.svelte";
 
