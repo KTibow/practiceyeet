@@ -36,11 +36,18 @@
       .replace(/_(\{[^}]+\}|[^\s])/g, "<sub>$1</sub>")
       .replace(/\{|\}/g, "");
 
+    // Handle dot
+    html = html.replaceAll("\\cdot", "·");
+
+    // Handle ellipsis
+    html = html.replaceAll("\\cdots", "...");
+    html = html.replaceAll("\\ldots", "...");
+
     // Handle plus-minus sign
-    html = html.replace(/\\pm/g, '<span class="pm">±</span>');
+    html = html.replaceAll("\\pm", '<span class="pm">±</span>');
 
     // Remove extra backslashes
-    html = html.replace(/\\/g, "");
+    html = html.replaceAll("\\", "");
 
     // Restore text
     html = html.replace(/TEXT(\d+)/g, (match, p1) => texts[+p1]);
