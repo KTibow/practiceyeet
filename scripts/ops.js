@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 export const openai = async (data) => {
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -13,22 +11,11 @@ export const openai = async (data) => {
 
   return json.choices[0].message.content;
 };
-export const createProblem = async (data) => {
-  await fetch("https://bnbdkuqqhotcnyqxapxj.supabase.co/rest/v1/problems", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: process.env.SB_KEY,
-      Authorization: `Bearer ${process.env.SB_KEY}`,
-    },
-    body: JSON.stringify({
-      data,
-    }),
-  });
-};
+
 export const isLongform = (text) => {
   return text.includes("Type your solution");
 };
+
 export const extractMetadata = (text) => {
   return {
     title: text
@@ -40,75 +27,142 @@ export const extractMetadata = (text) => {
     author: text.split(`<div id="author"`)[1].split("\n")[2].trim(),
   };
 };
-export const extractShortform = async (text) => {
-  const data = {
-    model: "gpt-4o-2024-08-06",
-    // model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "user",
-        content: `<problemarea>${text}</problemarea>
+
+function fixIndentation(inputText) {
+  // Split the text into lines
+  let lines = inputText.split("\n");
+
+  // Trim trailing spaces from all lines
+  lines = lines.map((line) => line.trimEnd());
+
+  // Find the minimum indentation level (ignoring empty lines and the first line)
+  const minIndent = Math.min(
+    ...lines
+      .slice(1)
+      .filter((line) => line.trim())
+      .map((line) => line.length - line.trimLeft().length),
+  );
+
+  // Remove the minimum indentation from each line, except the first line
+  const fixedLines = [
+    lines[0],
+    ...lines.slice(1).map((line) => line.slice(minIndent)),
+  ];
+
+  // Join the lines back together
+  return fixedLines.join("\n");
+}
+
+export const prepareShortformRequest = (text) => {
+  const textSlim =
+    (text.match(/<div id="description".*?<\/div>/s)?.[0] || "") +
+    (text.match(/<form.*?\/form>/s)?.[0] || "");
+  return `<problemarea>${textSlim}</problemarea>
 Look at that problem. Output ONLY this format:
 
 <problem>
-[the cleanly formatted problem here. this includes any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines.]
+[the cleanly formatted problem here. this includes any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines. names of fields don't go here.]
 </problem>
 ...fields like:
-<field_large>
+<field_text>
 <title>[title]</title>
 <solution>
 [solution here]
 </solution>
-</field_large>
-<field_small>
-<title>[title]</title>
-<solution>
-[solution here]
-</solution>
-</field_small>${
-          text.includes("checkbox")
-            ? `
+</field_text>${
+    text.includes("checkbox")
+      ? `
 <field_checkbox>
 <title>[title]</title>
 <solution>[yes or no]</solution>
 </field_checkbox>`
-            : ""
-        }${
-          text.includes("radio")
-            ? `
+      : ""
+  }${
+    text.includes("radio")
+      ? `
 <field_select>
 <title>[title]</title>
 <option>[option 1]</option>
 ...options
 <solution>[solution index]</solution>
 </field_select>`
-            : ""
-        }
+      : ""
+  }
 
-Note: Titles are like "Output" or "x - y". Don't use "Expression 1" as a title, instead only state the expression once in the title.`,
-      },
-    ],
-    temperature: 0,
-  };
+note: field titles are like "Output" or "x - y", not "expression 1".`;
+};
 
-  const r = await openai(data);
-  const problem = r.split("<problem>")[1].split("</problem>")[0].trim();
+export const prepareLongformRequest = (text) => {
+  const nameOfProblem =
+    text.match(/:  ((?:[A-Z][a-z0-9]*)+)\n/)?.[1] || "Solution";
+  const textSlim =
+    (text.match(/<div id="description".*?<\/div>/s)?.[0] || "") +
+    (text.match(/<div id="showmetheheaderarea".*?<\/div>/s)?.[0] || "") +
+    (text.match(/<div id="problemtypeclarification".*?<\/div>/s)?.[0] || "");
+
+  return `<problemarea>${textSlim}</problemarea>
+Analyze the open-ended problem above. Output ONLY in this format:
+
+<problem>
+[the cleanly formatted problem here. include quotes (use > format) or code (use \`\`\` format). do NOT indent outside of code blocks. do NOT put math as images; put math as simple TeX. only a subset of markdown is supported; for other things like tables, use unicode/HTML.]
+</problem>
+[
+now, give the user space and context for the code. just create a template, like one of the following. don't solve the problem for them.
+setup 1 (for editing a class):
+<solution_template>
+<input>public class ${nameOfProblem} {
+    public static void main(String[] args) {
+        // Your code here
+    }
+}</input>
+</solution_template>
+setup 2 (for editing bare code):
+<solution_template>
+public class ${nameOfProblem} {
+    public static void main(String[] args) {
+        <input>// Your code here</input>
+    }
+}
+</solution_template>
+setup 3 (for editing a method/similar):
+<solution_template>
+public class ${nameOfProblem} {
+    public static void main(String[] args) {
+        someMethod();
+    }
+    <input>public static void someMethod() {
+        // Your code here
+    }</input>
+}
+</solution_template>
+]
+<checker>
+[a Java program that checks the correctness of the user's solution. your program should:
+- Exit with code 0 if correct
+- Exit with code 1 and output human-readable info to standard error if incorrect
+- Exit with code 1 and forward the error message to standard error if it errors
+the compiled solution is in the current directory, for example it may be ./${nameOfProblem}.class. prefer using reflection to run the solution. do NOT be lazy when coding this.]
+</checker>`;
+};
+
+export const parseShortformResponse = (response) => {
+  const problem = response.split("<problem>")[1].split("</problem>")[0].trim();
   const response_fields = [];
-  for (const [, type, field] of r.matchAll(
-    /<(field_large|field_small|field_checkbox|field_select)>(.*?)<\/(?:field_large|field_small|field_checkbox|field_select)>/gs,
+  for (const [, type, field] of response.matchAll(
+    /<(field_text|field_checkbox|field_select)>(.*?)<\/(?:field_text|field_checkbox|field_select)>/gs,
   )) {
     let title = field.split("<title>")[1].split("</title>")[0];
     if (title == "output") title = "Output";
 
     let solution = field.split("<solution>")[1].split("</solution>")[0].trim();
     if (solution.startsWith("```") && solution.endsWith("```")) {
-      solution = solution.slice(3, -3).trim();
+      solution = solution.split("\n").slice(1, -1).join("\n");
     }
 
-    if (type == "field_large") {
-      response_fields.push({ type: "large", title, solution });
-    } else if (type == "field_small") {
-      response_fields.push({ type: "small", title, solution });
+    if (type == "field_text") {
+      const size =
+        solution.length < 50 && !solution.includes("\n") ? "small" : "large";
+      response_fields.push({ type: size, title, solution });
     } else if (type == "field_checkbox") {
       response_fields.push({ type: "checkbox", title, solution });
     } else if (type == "field_select") {
@@ -121,64 +175,46 @@ Note: Titles are like "Output" or "x - y". Don't use "Expression 1" as a title, 
 
   return { problem, response_fields };
 };
-export const extractLongform = async (text) => {
-  const nameOfProblem =
-    text.match(/:  ((?:[A-Z][a-z0-9]*)+)\n/)?.[1] || "Solution";
-  const data = {
-    model: "gpt-4o-2024-08-06",
-    messages: [
-      {
-        role: "user",
-        content: `<problemarea>${text}</problemarea>
-Analyze the open-ended problem above. Output ONLY in this format:
 
-<problem>
-[the cleanly formatted problem here, including any quotes or code, which should be formatted with > and \`\`\` formatting, fix any HTML escapes, and use real newlines.]
-</problem>
-<solution_mode>
-[for cases where the user should write a full class, use "open" and the user, while starting with the template, will have full control. for cases where the user only needs to write a few lines or a method, use "closed" and the user's solution will be templated into the template.
-</solution_mode>
-<solution_template>
-[write a class for the program. usually something like this:
-public class ${nameOfProblem} {
-    public static void main(String[] args) {
-        {{INPUT}}
-    }
-}]
-</solution_template>
-<checker>
-[a Java program that checks the correctness of the user's solution. your program should:
-- Exit with code 0 if correct
-- Exit with code 1 and output human-readable info if incorrect
-- Exit with code 1 and output the error message if it errors
-the compiled solution is in the current directory, for example it may be ./${nameOfProblem}.class. prefer using reflection to run the solution.]
-</checker>`,
-      },
-    ],
-    temperature: 0,
-  };
-
-  const r = await openai(data);
-
-  const problem = r.split("<problem>")[1].split("</problem>")[0].trim();
-  const solution_mode = r
-    .split("<solution_mode>")[1]
-    .split("</solution_mode>")[0]
-    .trim();
-  const solution_template = r
+export const parseLongformResponse = (response) => {
+  const problem = response.split("<problem>")[1].split("</problem>")[0].trim();
+  const solution_template = response
     .split("<solution_template>")[1]
     .split("</solution_template>")[0]
     .trim();
-  const checker = r.split("<checker>")[1].split("</checker>")[0].trim();
+  const checker = response.split("<checker>")[1].split("</checker>")[0].trim();
 
+  // todo: fix the solution default part's indentation
   return {
     problem,
     solution_template:
-      solution_mode == "open" ? "{{INPUT}}" : solution_template,
-    solution_default:
-      solution_mode == "open"
-        ? solution_template.replace("{{INPUT}}", "// Your code here")
-        : "",
+      solution_template.split("<input>")[0] +
+      "{{INPUT}}" +
+      solution_template.split("</input>")[1],
+    solution_default: fixIndentation(
+      solution_template.split("<input>")[1].split("</input>")[0].trim(),
+    ),
     checker,
   };
+};
+
+export const createProblem = async (data) => {
+  const r = await fetch(
+    "https://bnbdkuqqhotcnyqxapxj.supabase.co/rest/v1/problems",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: process.env.SB_KEY,
+        Authorization: `Bearer ${process.env.SB_KEY}`,
+      },
+      body: JSON.stringify({
+        data,
+      }),
+    },
+  );
+  if (!r.ok) {
+    console.error(await r.text());
+    throw new Error("Failed to create problem");
+  }
 };
