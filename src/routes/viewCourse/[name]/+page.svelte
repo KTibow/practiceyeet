@@ -1,12 +1,22 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Dialog from "./Dialog.svelte";
-  import names from "./names.json";
+  import { PUBLIC_NAMES_URL } from "$env/static/public";
 
   export let data;
   let transpose = false;
 
+  let names: Record<string, string> = {};
   let dialogData = { author: "", code: "" };
   let dialogOpen = false;
+
+  onMount(() => {
+    fetch(PUBLIC_NAMES_URL)
+      .then((r) => r.json())
+      .then((r) => {
+        names = r;
+      });
+  });
 
   const icons = {
     complete:
@@ -15,9 +25,6 @@
       "m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z",
   };
 
-  const getName = (user: number) => {
-    return (names as Record<string, string>)[user] || `User ${user}`;
-  };
   const getStatusIcon = (status: "complete" | "tried" | "not-attempted") => {
     if (status == "complete" || status == "tried") {
       return icons[status];
@@ -62,7 +69,7 @@
           {/each}
         {:else}
           {#each data.users as id}
-            <th>{getName(id)}</th>
+            <th>{names[id] || `User ${id}`}</th>
           {/each}
         {/if}
       </tr>
@@ -72,7 +79,7 @@
         <tr>
           <svelte:element this={transpose ? "th" : "td"}
             >{transpose
-              ? getName(item)
+              ? names[item] || `User ${item}`
               : item.title.replace("BJP4 ", "")}</svelte:element
           >
           {#each transpose ? data.matrix : data.users as subItem}
@@ -90,7 +97,9 @@
                 if (!code) return;
 
                 dialogData = {
-                  author: transpose ? getName(item) : getName(subItem),
+                  author: transpose
+                    ? names[item] || `User ${item}`
+                    : names[subItem] || `User ${subItem}`,
                   code,
                 };
                 dialogOpen = true;
