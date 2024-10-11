@@ -184,7 +184,6 @@ export const parseLongformResponse = (response) => {
     .trim();
   const checker = response.split("<checker>")[1].split("</checker>")[0].trim();
 
-  // todo: fix the solution default part's indentation
   return {
     problem,
     solution_template:
