@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Dialog from "./Dialog.svelte";
   import { PUBLIC_NAMES_URL } from "$env/static/public";
+  import Dialog from "./Dialog.svelte";
+  import { page } from "$app/stores";
 
   export let data;
   let transpose = false;
@@ -32,6 +33,10 @@
     return "";
   };
 </script>
+
+<svelte:head>
+  <title>{$page.params.name}</title>
+</svelte:head>
 
 <p class="center">Student progress</p>
 <p class="center">Students who haven't attempted problems are omitted</p>

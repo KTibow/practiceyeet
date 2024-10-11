@@ -2,6 +2,10 @@
   export let form;
 </script>
 
+<svelte:head>
+  <title>Course set</title>
+</svelte:head>
+
 <div class="center">
   <p>You're now part of {form?.course}.</p>
   <a href="/">Home</a>
