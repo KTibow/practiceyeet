@@ -98,16 +98,20 @@ export const prepareLongformRequest = (text) => {
   const textSlim =
     (text.match(/<div id="description".*?<\/div>/s)?.[0] || "") +
     (text.match(/<div id="showmetheheaderarea".*?<\/div>/s)?.[0] || "") +
+    (text.match(/<div id="initialvaluereset".*?<\/div>/s)?.[0] || "") +
     (text.match(/<div id="problemtypeclarification".*?<\/div>/s)?.[0] || "");
 
   return `<problemarea>${textSlim}</problemarea>
 Analyze the open-ended problem above. Output ONLY in this format:
 
 <problem>
-[the cleanly formatted problem here. include quotes (use > format) or code (use \`\`\` format). do NOT indent outside of code blocks. do NOT put math as images; put math as simple TeX. only a subset of markdown is supported; for other things like tables, use unicode/HTML.]
+[the cleanly formatted problem here. ONLY base this on the description div. include quotes (use > format) or code (use \`\`\` format). do NOT indent outside of code blocks. do NOT put math as images; put math as simple TeX. only a subset of markdown is supported; for other things like tables, use unicode/HTML.]
 </problem>
+<thinking>
+[think about different ways to make the upcoming templates and checker. it's imperative that they work. if there's anything tricky relating to imports, variables, or similar, think here.]
+</thinking>
 [
-now, give the user space and context for the code. just create a template, like one of the following. don't solve the problem for them.
+the user needs context and their code needs to work as a standalone class. create a template for that, like one of the following. don't solve the problem for them.
 setup 1 (for editing a class):
 <solution_template>
 <input>public class ${nameOfProblem} {
@@ -124,12 +128,9 @@ public class ${nameOfProblem} {
     }
 }
 </solution_template>
-setup 3 (for editing a method/similar):
+setup 3 (for editing a method, but can be modified for much more):
 <solution_template>
 public class ${nameOfProblem} {
-    public static void main(String[] args) {
-        someMethod();
-    }
     <input>public static void someMethod() {
         // Your code here
     }</input>
@@ -139,7 +140,7 @@ public class ${nameOfProblem} {
 <checker>
 [a Java program that checks the correctness of the user's solution. your program should:
 - Exit with code 0 if correct
-- Exit with code 1 and output human-readable info to standard error if incorrect
+- Exit with code 1 and clearly explain why it's incorrect to standard error if incorrect
 - Exit with code 1 and forward the error message to standard error if it errors
 the compiled solution is in the current directory, for example it may be ./${nameOfProblem}.class. prefer using reflection to run the solution. do NOT be lazy when coding this.]
 </checker>`;
